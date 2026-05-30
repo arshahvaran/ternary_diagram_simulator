@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ternary Diagram Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html[data-theme="light"]{
+    --bg:#ffffff; --surface:#ffffff; --surface-2:#f6f7f9; --text:#101113;
+    --text-soft:#697080; --line:#e6e8ec; --grid:#ebedf1; --border:#e3e6ea;
+    --shadow:rgba(15,20,30,.10); --field:#ffffff;
+  }
+  html[data-theme="dark"]{
+    --bg:#14161b; --surface:#1c1f26; --surface-2:#23272f; --text:#f0f2f5;
+    --text-soft:#9aa2af; --line:#2b303a; --grid:#272c35; --border:#2b303a;
+    --shadow:rgba(0,0,0,.55); --field:#191c22;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:"Hanken Grotesk",sans-serif; line-height:1.55; min-height:100vh;
+    transition:background .25s,color .25s;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:34px 24px 64px}
+  header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:28px}
+  h1{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(34px,5vw,52px);
+    line-height:1.0;letter-spacing:-.01em;color:var(--text)}
+  .subtitle{font-family:"Fraunces",serif;font-weight:500;font-size:20px;margin-top:14px;color:var(--text)}
+  .features{list-style:none;margin-top:11px;display:flex;flex-direction:column;gap:7px;max-width:64ch}
+  .features li{position:relative;padding-left:20px;color:var(--text-soft);font-size:17px}
+  .features li::before{content:"";position:absolute;left:1px;top:11px;width:7px;height:7px;border-radius:50%;background:var(--text-soft)}
+  .theme-btn{flex:none;display:inline-flex;align-items:center;gap:8px;cursor:pointer;
+    font-family:"DM Mono",monospace;font-size:14px;color:var(--text);
+    background:var(--surface);border:1px solid var(--border);border-radius:999px;
+    padding:10px 16px;transition:.18s}
+  .theme-btn:hover{border-color:var(--text-soft)}
+  .theme-btn svg{width:17px;height:17px}
+  main{display:grid;grid-template-columns:1.35fr .8fr;gap:26px;align-items:start}
+  @media(max-width:880px){main{grid-template-columns:1fr}}
+  .stage{background:var(--surface);border:1px solid var(--border);border-radius:18px;
+    padding:14px;box-shadow:0 14px 44px -26px var(--shadow)}
+  svg{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+  .grid-line{stroke:var(--grid);stroke-width:1}
+  .edge{stroke-width:3;fill:none;stroke-linecap:round}
+  .tick{font-family:"DM Mono",monospace;font-size:17px}
+  .axis-name{font-family:"Hanken Grotesk",sans-serif;font-weight:600;font-size:24px;letter-spacing:.01em}
+  .read-line{stroke-width:2.5;fill:none}
+  .vbox-rect{fill:var(--surface)}
+  .vbox-txt{font-family:"DM Mono",monospace;font-size:18px;font-weight:500}
+  .handle{fill:var(--text);stroke:var(--surface);stroke-width:3.5;cursor:grab}
+  .handle:active{cursor:grabbing}
+  .halo{fill:none;stroke:var(--text);stroke-width:1.2;opacity:.25}
+  .stage-foot{display:flex;align-items:center;gap:8px;margin-top:8px;padding:0 6px;
+    color:var(--text-soft);font-size:15px}
+  .panel{display:flex;flex-direction:column;gap:16px}
+  .cards{display:grid;gap:11px}
+  .card{border:1px solid var(--border);border-radius:15px;padding:14px 16px;position:relative;
+    overflow:hidden;background:var(--surface)}
+  .card .bar{position:absolute;left:0;top:0;bottom:0;width:6px}
+  .card .nm{font-weight:600;font-size:17px;display:flex;align-items:center;gap:8px}
+  .card .nm .dot{width:12px;height:12px;border-radius:50%;flex:none}
+  .card .big{font-family:"DM Mono",monospace;font-weight:500;font-size:35px;line-height:1;margin-top:8px}
+  .card .sub{font-family:"DM Mono",monospace;font-size:14px;color:var(--text-soft);margin-top:6px}
+  .block{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:16px 17px}
+  .block h2{font-family:"Fraunces",serif;font-weight:600;font-size:19px;margin-bottom:13px;
+    display:flex;justify-content:space-between;align-items:baseline}
+  .block h2 .unit{font-family:"DM Mono",monospace;font-size:13px;color:var(--text-soft);font-weight:400}
+  .seg{position:relative;display:grid;grid-template-columns:1fr 1fr;background:var(--surface-2);
+    border:1px solid var(--border);border-radius:12px;padding:4px}
+  .seg-thumb{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);
+    background:var(--text);border-radius:9px;z-index:0;
+    transition:transform .26s cubic-bezier(.45,0,.2,1)}
+  .seg.right .seg-thumb{transform:translateX(100%)}
+  .seg button{position:relative;z-index:1;font-family:"DM Mono",monospace;font-size:15px;
+    border:none;background:transparent;color:var(--text-soft);padding:11px 0;cursor:pointer;
+    text-align:center;transition:color .22s;display:flex;align-items:center;justify-content:center;gap:7px}
+  .seg button .ico{width:16px;height:16px}
+  .seg button.on{color:var(--bg)}
+  .row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+  .manual{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:13px}
+  .manual label{font-family:"DM Mono",monospace;font-size:13px;color:var(--text-soft);
+    display:block;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  input{font-family:"DM Mono",monospace;font-size:15px;width:100%;padding:9px 10px;
+    border:1px solid var(--border);border-radius:9px;background:var(--field);color:var(--text);
+    -webkit-user-select:text;user-select:text}
+  input:focus{outline:none;border-color:var(--text-soft)}
+  .btn{font-family:"Hanken Grotesk",sans-serif;font-weight:500;font-size:15px;cursor:pointer;
+    padding:10px 17px;border-radius:10px;border:1px solid var(--text);background:var(--text);
+    color:var(--bg);transition:.15s}
+  .btn.ghost{background:transparent;color:var(--text);border-color:var(--border)}
+  .btn:hover{transform:translateY(-1px)}
+  details summary{cursor:pointer;font-family:"Fraunces",serif;font-weight:600;font-size:19px;
+    list-style:none;display:flex;justify-content:space-between;align-items:center}
+  details summary::-webkit-details-marker{display:none}
+  details summary .pm{font-family:"DM Mono",monospace;color:var(--text-soft);font-weight:400}
+  details[open] summary .pm{transform:rotate(45deg)}
+  .ed-grid{display:grid;grid-template-columns:34px 1fr 78px 78px;gap:11px;align-items:center}
+  .ed-head{margin:14px 0 4px}
+  .ed-head .lbl{font-family:"DM Mono",monospace;font-size:12px;color:var(--text-soft);
+    text-transform:uppercase;letter-spacing:.08em;text-align:center}
+  .ed-row{margin-top:10px}
+  .ed-row input[type=color]{width:34px;height:34px;border:1px solid var(--border);border-radius:9px;
+    background:none;cursor:pointer;padding:2px}
+  .ed-row input[type=color]::-webkit-color-swatch{border:none;border-radius:6px}
+  .ed-row input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+  .switch{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:15px;color:var(--text-soft)}
+  .switch input{width:18px;height:18px;accent-color:var(--text)}
+  footer{margin-top:36px;color:var(--text-soft);font-size:15px;text-align:center;
+    font-family:"DM Mono",monospace;line-height:1.9}
+  footer a{color:var(--text-soft);text-decoration:underline;text-underline-offset:2px}
+  footer a:hover{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Ternary Diagram Simulator</h1>
+      <div class="subtitle">What this tool does:</div>
+      <ul class="features">
+        <li>Drag the point or type amounts to set a three component composition</li>
+        <li>Reads each component off its axis with live arrows and value boxes</li>
+        <li>Switches between fractions (0 to 1) and percentages (0 to 100 %)</li>
+        <li>Lets you rename the axes, recolor them, and map each to its own range</li>
+      </ul>
+    </div>
+    <button class="theme-btn" id="themeBtn" aria-label="toggle theme"></button>
+  </header>
+
+  <main>
+    <div class="stage">
+      <svg id="svg" viewBox="0 0 720 660" role="img" aria-label="Ternary diagram. Drag the point to set the three component fractions."></svg>
+      <div class="stage-foot">
+        <label class="switch"><input type="checkbox" id="showLines" checked> show reading arrows</label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="cards" id="cards"></div>
+
+      <div class="block">
+        <h2>Display Unit</h2>
+        <div class="seg" id="modeSeg" role="group" aria-label="display unit">
+          <span class="seg-thumb"></span>
+          <button data-mode="percent" class="on">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+            0 to 100 %
+          </button>
+          <button data-mode="fraction">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="12" x2="18" y2="12"/><circle cx="9" cy="6.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="17.5" r="1.4" fill="currentColor" stroke="none"/></svg>
+            0 to 1
+          </button>
+        </div>
+      </div>
+
+      <div class="block">
+        <h2>Enter a composition <span class="unit" id="unitHint">values 0 to 100</span></h2>
+        <div class="manual">
+          <div><label id="ml0">A</label><input type="number" id="mi0" step="any"></div>
+          <div><label id="ml1">B</label><input type="number" id="mi1" step="any"></div>
+          <div><label id="ml2">C</label><input type="number" id="mi2" step="any"></div>
+        </div>
+        <div class="row">
+          <button class="btn" id="plotBtn">Plot it</button>
+          <button class="btn ghost" id="randBtn">Random</button>
+          <button class="btn ghost" id="centerBtn">Center</button>
+        </div>
+      </div>
+
+      <div class="block">
+        <details>
+          <summary>Customise axes <span class="pm">+</span></summary>
+          <div id="editors"></div>
+        </details>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div>Developed by Ali Reza Shahvaran</div>
+    <div>(<a href="https://github.com/arshahvaran/" target="_blank" rel="noopener">https://github.com/arshahvaran/</a>)</div>
+    <div>May 2026</div>
+  </footer>
+</div>
+
+<script>
+const SVG = document.getElementById('svg');
+const NS = 'http://www.w3.org/2000/svg';
+
+const A = {x:360, y:92}, B = {x:90, y:560}, C = {x:630, y:560};
+const CEN = {x:(A.x+B.x+C.x)/3, y:(A.y+B.y+C.y)/3};
+
+let comps = [
+  {name:'Component A', color:'#D64541', min:0, max:1},
+  {name:'Component B', color:'#3B7DD8', min:0, max:1},
+  {name:'Component C', color:'#1FA37A', min:0, max:1},
+];
+let frac = [1/3, 1/3, 1/3];
+let mode = 'percent';
+let showLines = true;
+
+const toXY = f => ({x:f[0]*A.x+f[1]*B.x+f[2]*C.x, y:f[0]*A.y+f[1]*B.y+f[2]*C.y});
+const den = (B.y-C.y)*(A.x-C.x) + (C.x-B.x)*(A.y-C.y);
+function bary(px,py){
+  let fA = ((B.y-C.y)*(px-C.x)+(C.x-B.x)*(py-C.y))/den;
+  let fB = ((C.y-A.y)*(px-C.x)+(A.x-C.x)*(py-C.y))/den;
+  return clampFrac([fA, fB, 1-fA-fB]);
+}
+function clampFrac(f){
+  f = f.map(v => (isFinite(v)&&v>0)?v:0);
+  const s = f[0]+f[1]+f[2];
+  return s>0 ? f.map(v=>v/s) : [1/3,1/3,1/3];
+}
+function el(tag, attrs){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+function hexToRgba(hex,a){const n=parseInt(String(hex).replace('#',''),16);if(!isFinite(n))return 'transparent';return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;}
+function fmt(v){if(!isFinite(v))return '0';if(Math.abs(v)>=100)return v.toFixed(0);if(Math.abs(v)>=10)return v.toFixed(1);return v.toFixed(2);}
+function tickLabel(t){return mode==='percent'?String(Math.round(t*100)):t.toFixed(1);}
+function dispBox(f){return mode==='percent'?Math.round(f*100)+'%':f.toFixed(2);}
+function dispManual(f){return mode==='percent'?(f*100).toFixed(1):f.toFixed(3);}
+function dispCard(f){return mode==='percent'?(f*100).toFixed(1)+' %':f.toFixed(3);}
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+function outward(p1,p2){const m={x:(p1.x+p2.x)/2,y:(p1.y+p2.y)/2};let dx=m.x-CEN.x,dy=m.y-CEN.y;const L=Math.hypot(dx,dy)||1;return {mx:m.x,my:m.y,nx:dx/L,ny:dy/L};}
+
+function drawStatic(){
+  SVG.innerHTML = '';
+  const defs = el('defs',{});
+  const mk = el('marker',{id:'ah',viewBox:'0 0 10 10',refX:'8.5',refY:'5',markerWidth:'8',markerHeight:'8',orient:'auto-start-reverse'});
+  mk.appendChild(el('path',{d:'M1.5 1.5L9 5L1.5 8.5',fill:'none',stroke:'context-stroke','stroke-width':'2','stroke-linecap':'round','stroke-linejoin':'round'}));
+  defs.appendChild(mk); SVG.appendChild(defs);
+
+  const g = el('g',{}); SVG.appendChild(g);
+
+  for(let k=1;k<10;k++){
+    const t=k/10;
+    [[toXY([t,1-t,0]),toXY([t,0,1-t])],
+     [toXY([1-t,t,0]),toXY([0,t,1-t])],
+     [toXY([1-t,0,t]),toXY([0,1-t,t])]].forEach(([p,q])=>
+       g.appendChild(el('line',{x1:p.x,y1:p.y,x2:q.x,y2:q.y,class:'grid-line'})));
+  }
+
+  g.appendChild(el('line',{x1:A.x,y1:A.y,x2:B.x,y2:B.y,class:'edge',stroke:comps[0].color}));
+  g.appendChild(el('line',{x1:B.x,y1:B.y,x2:C.x,y2:C.y,class:'edge',stroke:comps[1].color}));
+  g.appendChild(el('line',{x1:C.x,y1:C.y,x2:A.x,y2:A.y,class:'edge',stroke:comps[2].color}));
+
+  for(let k=1;k<5;k++){
+    const t=k*0.2;
+    addTick(g, toXY([t,1-t,0]), tickLabel(t), comps[0].color, -20, 6, 'end');
+    addTick(g, toXY([0,t,1-t]), tickLabel(t), comps[1].color, 0, 30, 'middle');
+    addTick(g, toXY([1-t,0,t]), tickLabel(t), comps[2].color, 20, 6, 'start');
+  }
+
+  axisName(g, B, A, comps[0].name, comps[0].color, 58);
+  axisName(g, B, C, comps[1].name, comps[1].color, 62);
+  axisName(g, A, C, comps[2].name, comps[2].color, 58);
+
+  SVG.appendChild(el('g',{id:'dyn'}));
+}
+function addTick(g,p,txt,color,dx,dy,anchor){
+  const t=el('text',{x:p.x+dx,y:p.y+dy,class:'tick',fill:color,'text-anchor':anchor});
+  t.textContent=txt; g.appendChild(t);
+}
+function axisName(g,p1,p2,name,color,off){
+  const o=outward(p1,p2);
+  let ang=Math.atan2(p2.y-p1.y,p2.x-p1.x)*180/Math.PI;
+  if(ang>90)ang-=180; if(ang<-90)ang+=180;
+  const x=o.mx+o.nx*off, y=o.my+o.ny*off;
+  const t=el('text',{x,y,class:'axis-name',fill:color,'text-anchor':'middle','dominant-baseline':'middle',transform:`rotate(${ang} ${x} ${y})`});
+  t.textContent=name; g.appendChild(t);
+}
+
+function drawDynamic(){
+  const dyn=document.getElementById('dyn'); dyn.innerHTML='';
+  const P=toXY(frac);
+
+  if(showLines){
+    const ends=[
+      {p:toXY([frac[0],1-frac[0],0]), e:[B,A]},
+      {p:toXY([0,frac[1],1-frac[1]]), e:[B,C]},
+      {p:toXY([1-frac[2],0,frac[2]]), e:[A,C]},
+    ];
+    ends.forEach((d,i)=>{
+      dyn.appendChild(el('line',{x1:P.x,y1:P.y,x2:d.p.x,y2:d.p.y,class:'read-line',stroke:comps[i].color,'marker-end':'url(#ah)'}));
+      const o=outward(d.e[0],d.e[1]);
+      const bx=d.p.x+o.nx*22, by=d.p.y+o.ny*22;
+      valueBox(dyn, bx, by, dispBox(frac[i]), comps[i].color);
+    });
+  }
+  dyn.appendChild(el('circle',{cx:P.x,cy:P.y,r:22,class:'halo'}));
+  dyn.appendChild(el('circle',{cx:P.x,cy:P.y,r:11,class:'handle'}));
+}
+function valueBox(g,cx,cy,txt,color){
+  const w=txt.length*10+16, h=26;
+  g.appendChild(el('rect',{x:cx-w/2,y:cy-h/2,width:w,height:h,rx:6,class:'vbox-rect',stroke:color,'stroke-width':2}));
+  const t=el('text',{x:cx,y:cy+1,class:'vbox-txt',fill:color,'text-anchor':'middle','dominant-baseline':'middle'});
+  t.textContent=txt; g.appendChild(t);
+}
+
+function drawCards(){
+  const wrap=document.getElementById('cards'); wrap.innerHTML='';
+  comps.forEach((c,i)=>{
+    const f=frac[i], actual=c.min+f*(c.max-c.min);
+    const card=document.createElement('div');
+    card.className='card'; card.style.background=hexToRgba(c.color,.07);
+    card.innerHTML=
+      `<div class="bar" style="background:${c.color}"></div>
+       <div class="nm"><span class="dot" style="background:${c.color}"></span>${escapeHtml(c.name)}</div>
+       <div class="big" style="color:${c.color}">${dispCard(f)}</div>
+       <div class="sub">Scaled to [${fmt(c.min)} to ${fmt(c.max)}]: <strong>${fmt(actual)}</strong></div>`;
+    wrap.appendChild(card);
+  });
+}
+
+function buildEditors(){
+  const host=document.getElementById('editors'); host.innerHTML='';
+  const head=document.createElement('div');
+  head.className='ed-grid ed-head';
+  head.innerHTML=`<div></div><div></div><div class="lbl">min</div><div class="lbl">max</div>`;
+  host.appendChild(head);
+  comps.forEach((c,i)=>{
+    const r=document.createElement('div');
+    r.className='ed-grid ed-row';
+    r.innerHTML=
+      `<input type="color" value="${c.color}" data-i="${i}" data-k="color">
+       <input type="text" value="${escapeHtml(c.name)}" data-i="${i}" data-k="name">
+       <input type="number" value="${c.min}" step="any" data-i="${i}" data-k="min">
+       <input type="number" value="${c.max}" step="any" data-i="${i}" data-k="max">`;
+    host.appendChild(r);
+  });
+  host.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',e=>{
+    const i=+e.target.dataset.i,k=e.target.dataset.k;
+    comps[i][k]=(k==='min'||k==='max')?(parseFloat(e.target.value)||0):e.target.value;
+    drawStatic(); drawDynamic(); drawCards(); syncLabels();
+  }));
+}
+function syncLabels(){['ml0','ml1','ml2'].forEach((id,i)=>document.getElementById(id).textContent=comps[i].name);}
+function syncManual(){[0,1,2].forEach(i=>document.getElementById('mi'+i).value=dispManual(frac[i]));}
+function syncUnitHint(){document.getElementById('unitHint').textContent=mode==='percent'?'values 0 to 100':'values 0 to 1';}
+
+function svgPoint(evt){const pt=SVG.createSVGPoint();pt.x=evt.clientX;pt.y=evt.clientY;return pt.matrixTransform(SVG.getScreenCTM().inverse());}
+let dragging=false;
+function moveTo(evt){const p=svgPoint(evt);frac=bary(p.x,p.y);drawDynamic();drawCards();syncManual();}
+SVG.addEventListener('pointerdown',e=>{dragging=true;SVG.setPointerCapture(e.pointerId);moveTo(e);});
+SVG.addEventListener('pointermove',e=>{if(dragging)moveTo(e);});
+SVG.addEventListener('pointerup',()=>dragging=false);
+SVG.addEventListener('pointercancel',()=>dragging=false);
+
+document.getElementById('showLines').addEventListener('change',e=>{showLines=e.target.checked;drawDynamic();});
+const seg=document.getElementById('modeSeg');
+seg.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  mode=b.dataset.mode;
+  seg.classList.toggle('right', mode==='fraction');
+  seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  drawStatic(); drawDynamic(); drawCards(); syncManual(); syncUnitHint();
+});
+document.getElementById('plotBtn').addEventListener('click',()=>{
+  const v=[0,1,2].map(i=>parseFloat(document.getElementById('mi'+i).value)||0);
+  if(v[0]+v[1]+v[2]<=0)return;
+  frac=clampFrac(v); drawDynamic(); drawCards(); syncManual();
+});
+document.getElementById('randBtn').addEventListener('click',()=>{
+  frac=clampFrac([Math.random(),Math.random(),Math.random()]);
+  drawDynamic(); drawCards(); syncManual();
+});
+document.getElementById('centerBtn').addEventListener('click',()=>{
+  frac=[1/3,1/3,1/3]; drawDynamic(); drawCards(); syncManual();
+});
+
+const SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>';
+const MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>';
+const btn=document.getElementById('themeBtn');
+function setTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  btn.innerHTML=(t==='light'?MOON:SUN)+`<span>${t==='light'?'Dark':'Light'}</span>`;
+}
+btn.addEventListener('click',()=>setTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light'));
+
+setTheme('light');
+drawStatic(); drawDynamic(); drawCards(); buildEditors(); syncLabels(); syncManual(); syncUnitHint();
+</script>
+</body>
+</html>
